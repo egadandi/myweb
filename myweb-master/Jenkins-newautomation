@@ -1,0 +1,40 @@
+pipeline{
+    agent any
+     tools {
+        maven 'Maven3'
+    }
+    
+    environment{
+        PATH = "/opt/maven3/bin:$PATH"
+    }
+    stages{
+        stage("Git Checkout"){
+            steps{
+                git credentialsId: '6b0595de-ca14-4d2b-b36f-44ad81fb4d60', url: 'https://github.com/gummadala/myweb.git'
+            }
+        }
+        
+        stage("Maven Build"){
+            steps{
+                sh "mvn clean sonar:sonar package"     
+            }
+        }
+        
+       
+        stage("deploy-dev"){
+            steps{
+                sshagent(['rajarao']) {
+                sh """
+                    scp -o StrictHostKeyChecking=no target/myweb-8.2.0.war  ec2-user@3.101.31.82:/home/ec2-user/apache-tomcat-9.0.56/webapps/
+                    
+                    ssh ec2-user@3.101.31.82 /home/ec2-user/apache-tomcat-9.0.56/bin/shutdown.sh
+                    
+                    ssh ec2-user@3.101.31.82 /home/ec2-user/apache-tomcat-9.0.56/bin/startup.sh
+                
+                """
+               }
+            
+            }
+        }
+    }
+}
